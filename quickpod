@@ -1,0 +1,195 @@
+#!/bin/sh
+
+# Usage: url_escape TEXT
+#   Returns the URL-escaped version of TEXT. Replaces reserved characters with
+#   their percent encodings. Assumes ASCII text input.
+url_escape() {
+    local head
+    local input="$1"
+    local output=""
+
+    while [ "${#input}" -gt 0 ]; do
+        head="$(printf '%.1s' "$input")"
+        case "$head" in
+            \!) output="${output}%21" ;;
+            \#) output="${output}%23" ;;
+            \$) output="${output}%24" ;;
+            \%) output="${output}%25" ;;
+            \&) output="${output}%26" ;;
+            \') output="${output}%27" ;;
+            \() output="${output}%28" ;;
+            \)) output="${output}%29" ;;
+            \*) output="${output}%2A" ;;
+            \+) output="${output}%2B" ;;
+            \,) output="${output}%2C" ;;
+            \/) output="${output}%2F" ;;
+            \:) output="${output}%3A" ;;
+            \;) output="${output}%3B" ;;
+            \=) output="${output}%3D" ;;
+            \?) output="${output}%3F" ;;
+            \@) output="${output}%40" ;;
+            \[) output="${output}%5B" ;;
+            \]) output="${output}%5D" ;;
+            *) output="$output$head" ;;
+        esac
+        input="${input#?}"
+    done
+
+    printf '%s' "$output"
+}
+
+# Usage: xml_escape TEXT
+#   Returns the XML-escaped version of TEXT. Replaces reserved characters with
+#   their entities. Assumes ASCII text input.
+xml_escape() {
+    local head
+    local input="$1"
+    local output=""
+
+    while [ "${#input}" -gt 0 ]; do
+        head="$(printf '%.1s' "$input")"
+        case "$head" in
+            \&) output="${output}&amp;" ;;
+            \<) output="${output}&lt;" ;;
+            \>) output="${output}&gt;" ;;
+            \') output="${output}&apos;" ;;
+            \") output="${output}&quot;" ;;
+            *) output="$output$head" ;;
+        esac
+        input="${input#?}"
+    done
+
+    printf '%s' "$output"
+}
+
+# Usage: open_element ELEMENT [ATTR VALUE]...
+#   Returns the text of an opening XML tag for ELEMENT with the given
+#   attributes. Attribute values are XML-escaped automatically.
+open_element() {
+    printf "<%s" "$1"
+    shift
+
+    while [ "$#" -gt 0 ]; do
+        printf " %s=" "$1"
+        printf "'%s'" "$(xml_escape "$2")"
+        shift 2
+    done
+    printf ">"
+}
+
+# Usage: self_element ELEMENT [ATTR VALUE]...
+#   Returns the text of a self-closing XML tag for ELEMENT with the given
+#   attributes. Other than being self-closing, the behavior is the same
+#   as open_element.
+self_element() {
+    printf "<%s" "$1"
+    shift
+
+    while [ "$#" -gt 0 ]; do
+        printf " %s=" "$1"
+        printf "'%s'" "$(xml_escape "$2")"
+        shift 2
+    done
+    printf ">"
+}
+
+# Usage: close ELEMENT
+#   Returns the text of a closing XML tag for ELEMENT.
+close_element() {
+    echo "</$1>"
+}
+
+# Usage: gen_entry FILE
+#   Returns the text of an Atom entry for the given file.
+gen_entry() {
+    local checksum
+    local size
+    local file
+    file="$(basename "$1")"
+
+    open_element entry
+
+    checksum="$(cksum "$1")"
+
+    # cksum output contains the checksum, length and filename separated by
+    # spaces. Delete the first word and then remove the last ones to get length.
+    size="${checksum#* }"
+    size="${size%% *}"
+
+    checksum="${checksum%% *}"
+
+    open_element id
+    xml_escape "urn:checksum:$checksum"
+    close_element id
+
+    open_element title
+    xml_escape "$file"
+    close_element title
+
+    # XXX: Find a reasonable way of getting the file modification time using
+    # POSIX tools. For now say that the file was last updated when the feed was
+    # generated.
+    open_element updated
+    xml_escape "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+    close_element updated
+
+    self_element link \
+        href "$QP_HTTP_BASE$(url_escape "$file")" \
+        rel enclosure \
+        type "$(file -b -i "$1")" \
+        length $size
+
+    close_element entry
+}
+
+# Usage: gen_feed DIRECTORY
+#   Returns the text of an Atom feed that lists each of the files in DIRECTORY
+#   as enclosures.
+gen_feed() {
+    local file
+    local checksum
+    local size
+
+    echo '<?xml version="1.0" encoding="utf-8"?>'
+    open_element feed xmlns "http://www.w3.org/2005/Atom"
+
+    open_element generator uri "https://github.com/adamnew123456/quickpod" version 0.1
+    xml_escape "quickpod"
+    close_element generator
+
+    open_element title
+    xml_escape "quickpod - Listing of $(pwd)"
+    close_element title
+
+    open_element id
+    xml_escape "$QP_FEED_ID"
+    close_element id
+
+    open_element updated
+    xml_escape "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+    close_element updated
+
+    cd "$1"
+    for filename in *; do
+        gen_entry "$filename"
+    done
+
+    close_element feed
+}
+
+if [ -z "$QP_FEED_ID" ]; then
+    QP_FEED_ID="urn:quickpod:feed"
+fi
+
+if [ -z "$QP_DIR" ]; then
+    QP_DIR="$PWD"
+fi
+
+if [ -z "$QP_HTTP_BASE" ]; then
+    QP_HTTP_BASE="http://$SERVER_NAME:$SERVER_PORT/"
+fi
+
+echo "Content-Type: application/atom+xml"
+echo
+
+gen_feed "$QP_DIR"
