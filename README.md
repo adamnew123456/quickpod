@@ -42,8 +42,15 @@ you will either need to set `QP_HTTP_BASE`, or set `SERVER_NAME` and let
 quickpod generate `QP_HTTP_BASE` using the above format.
 
 **QP_FEED_ID** is the Atom feed identifier, which can be used to serve different
-  feeds. By default this the fixed string "urn:quickpod:feed", so without setting
-  this variable all readers will recognize all quickpod feeds as the same feed.
+feeds. By default this the fixed string "urn:quickpod:feed", so without setting
+this variable all readers will recognize all quickpod feeds as the same feed.
+
+**QP_FORCE_AUDIO** determines whether video feed items are treated as audio. This
+is intended as a workaround for cases where `file` reports an audio file as having
+a video MIME type.
+
+If this is set (to anything, the value does not matter) then MIME types starting
+with `video/` will have that portion replaced with `audio/`.
 
 # Dependencies
 
@@ -54,3 +61,5 @@ few other tools:
   know, yours probably does)
 
 - POSIX ckutil, basename, date, id
+
+- file

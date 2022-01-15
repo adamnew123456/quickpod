@@ -94,10 +94,25 @@ self_element() {
     printf "/>"
 }
 
-# Usage: close ELEMENT
+# Usage: close_element ELEMENT
 #   Returns the text of a closing XML tag for ELEMENT.
 close_element() {
     echo "</$1>"
+}
+
+# Usage: get_mime FILE
+#   Returns the MIME type of the file, with quickpod-specific hacks applied.
+get_mime() {
+    local mime
+    mime="$(file -b -i "$1")"
+
+    if [ -n "$QP_FORCE_AUDIO" ]; then
+        case "$mime" in
+            video/*) mime="audio/${mime#video/}" ;;
+        esac
+    fi
+
+    printf '%s' $mime
 }
 
 # Usage: gen_entry FILE
@@ -141,7 +156,7 @@ gen_entry() {
     self_element link \
         href "$QP_HTTP_BASE$(url_escape "$file")" \
         rel enclosure \
-        type "$(file -b -i "$1")" \
+        type "$(get_mime "$1")" \
         length $size
 
     close_element entry
