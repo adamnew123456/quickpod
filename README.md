@@ -44,3 +44,13 @@ quickpod generate `QP_HTTP_BASE` using the above format.
 **QP_FEED_ID** is the Atom feed identifier, which can be used to serve different
   feeds. By default this the fixed string "urn:quickpod:feed", so without setting
   this variable all readers will recognize all quickpod feeds as the same feed.
+
+# Dependencies
+
+Aside from the previously mentioned CGI-enabled HTTP server, you'll also need a
+few other tools:
+
+- A POSIX shell that supports `local` for variable declarations (if you don't
+  know, yours probably does)
+
+- POSIX ckutil, basename and date
