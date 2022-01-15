@@ -134,6 +134,10 @@ gen_entry() {
     xml_escape "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
     close_element updated
 
+    open_element content
+    xml_escape "$file"
+    close_element content
+
     self_element link \
         href "$QP_HTTP_BASE$(url_escape "$file")" \
         rel enclosure \
@@ -165,6 +169,12 @@ gen_feed() {
     open_element id
     xml_escape "$QP_FEED_ID"
     close_element id
+
+    open_element author
+    open_element name
+    xml_escape "User $(id -u)"
+    close_element name
+    close_element author
 
     open_element updated
     xml_escape "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"

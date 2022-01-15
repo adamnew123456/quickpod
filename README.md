@@ -53,4 +53,4 @@ few other tools:
 - A POSIX shell that supports `local` for variable declarations (if you don't
   know, yours probably does)
 
-- POSIX ckutil, basename and date
+- POSIX ckutil, basename, date, id
