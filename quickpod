@@ -11,6 +11,7 @@ url_escape() {
     while [ "${#input}" -gt 0 ]; do
         head="$(printf '%.1s' "$input")"
         case "$head" in
+            \ ) output="${output}%20" ;;
             \!) output="${output}%21" ;;
             \#) output="${output}%23" ;;
             \$) output="${output}%24" ;;
@@ -90,7 +91,7 @@ self_element() {
         printf "'%s'" "$(xml_escape "$2")"
         shift 2
     done
-    printf ">"
+    printf "/>"
 }
 
 # Usage: close ELEMENT
@@ -171,7 +172,9 @@ gen_feed() {
 
     cd "$1"
     for filename in *; do
-        gen_entry "$filename"
+        if [ -f "$filename" ]; then
+            gen_entry "$filename"
+        fi
     done
 
     close_element feed
