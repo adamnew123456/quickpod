@@ -163,7 +163,7 @@ gen_feed() {
     close_element generator
 
     open_element title
-    xml_escape "quickpod - Listing of $(pwd)"
+    xml_escape "quickpod - Listing of $QP_DIR"
     close_element title
 
     open_element id
